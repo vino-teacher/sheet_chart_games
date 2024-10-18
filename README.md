@@ -35,6 +35,12 @@
             padding: 10px;
             font-size: 16px;
         }
+
+        .error {
+            color: red;
+            font-size: 14px;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -47,27 +53,16 @@
             <th>A</th>
             <th>B</th>
         </tr>
-        <tr>
-            <td contenteditable="true">Student 1</td>
-            <td contenteditable="true">15</td>
-        </tr>
-        <tr>
-            <td contenteditable="true">Student 2</td>
-            <td contenteditable="true">18</td>
-        </tr>
-        <tr>
-            <td contenteditable="true">Student 3</td>
-            <td contenteditable="true">12</td>
-        </tr>
-        <tr>
-            <td contenteditable="true">Student 4</td>
-            <td contenteditable="true">20</td>
-        </tr>
-        <tr>
-            <td contenteditable="true">Student 5</td>
-            <td contenteditable="true">14</td>
-        </tr>
+        <!-- Empty rows to allow user input -->
+        <tr><td contenteditable="true"></td><td contenteditable="true"></td></tr>
+        <tr><td contenteditable="true"></td><td contenteditable="true"></td></tr>
+        <tr><td contenteditable="true"></td><td contenteditable="true"></td></tr>
+        <tr><td contenteditable="true"></td><td contenteditable="true"></td></tr>
+        <tr><td contenteditable="true"></td><td contenteditable="true"></td></tr>
     </table>
+
+    <!-- Error message container -->
+    <div id="errorMessage" class="error"></div>
 
     <!-- Buttons for generating charts -->
     <div id="chartControls">
@@ -91,27 +86,55 @@
             let names = [];
             let marks = [];
             const table = document.getElementById("spreadsheet");
-            for (let i = 1; i < table.rows.length; i++) { // Start from 1 to skip header
-                let name = table.rows[i].cells[0].innerText;
-                let mark = parseInt(table.rows[i].cells[1].innerText);
+            const errorMessage = document.getElementById("errorMessage");
 
-                if (name && !isNaN(mark)) { // Ensure data is valid
-                    names.push(name);
-                    marks.push(mark);
+            // Clear previous error message
+            errorMessage.textContent = '';
+
+            for (let i = 1; i < table.rows.length; i++) { // Start from 1 to skip header
+                let name = table.rows[i].cells[0].innerText.trim();
+                let mark = parseInt(table.rows[i].cells[1].innerText.trim());
+
+                // Validate that names are not empty and marks are between 10 and 20
+                if (!name) {
+                    errorMessage.textContent = 'Please enter student names.';
+                    return null;
                 }
+                if (isNaN(mark) || mark < 10 || mark > 20) {
+                    errorMessage.textContent = 'Please enter marks between 10 and 20 for all students.';
+                    return null;
+                }
+
+                names.push(name);
+                marks.push(mark);
             }
+
             return { names, marks };
         }
 
         // Function to generate chart
         function generateChart(type) {
             const data = getTableData();
+            const errorMessage = document.getElementById("errorMessage");
+
+            // If there's invalid data, don't proceed to chart generation
+            if (!data) {
+                return;
+            }
+
             const ctx = document.getElementById("chartCanvas").getContext("2d");
 
             // Destroy the existing chart before creating a new one
             if (window.chart) {
                 window.chart.destroy();
             }
+
+            // Random color generator for charts
+            const colors = data.names.map(() => {
+                return 'rgba(' + Math.floor(Math.random() * 256) + ',' +
+                                Math.floor(Math.random() * 256) + ',' +
+                                Math.floor(Math.random() * 256) + ', 0.6)';
+            });
 
             // Create the chart
             window.chart = new Chart(ctx, {
@@ -121,8 +144,8 @@
                     datasets: [{
                         label: 'Student Marks',
                         data: data.marks,
-                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
-                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: colors,
+                        borderColor: colors.map(color => color.replace('0.6', '1')),
                         borderWidth: 1
                     }]
                 },
